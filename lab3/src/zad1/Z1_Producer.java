@@ -29,10 +29,18 @@ public class Z1_Producer {
         channel.queueDeclare(QUEUE_NAME, false, false, false, null);        
 
         // producer (publish msg)
-        String message = br.readLine();
+         String message;
+         // String message = br.readLine();
 
-        channel.basicPublish("", QUEUE_NAME, null, message.getBytes());
-        System.out.println("Sent: " + message);
+        for(int i = 0; i < 10 ; i++) {
+            if(i % 2 == 0){
+                message = "1";
+            } else{
+                message = "5";
+            }
+            channel.basicPublish("", QUEUE_NAME, null, message.getBytes());
+            System.out.println("Sent: " + message);
+        }
 
         // close
         channel.close();

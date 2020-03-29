@@ -1,59 +1,55 @@
-package zad1;
+package zad2;
 
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
-
-public class Z1_Consumer {
+public class Z2_Consumer {
 
     public static void main(String[] argv) throws Exception {
 
         // info
-        System.out.println("Z1 CONSUMER");
+        System.out.println("Z2 CONSUMER");
 
         // connection & channel
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
-        channel.basicQos(1);
 
-        // queue
-        String QUEUE_NAME = "queue1";
-        channel.queueDeclare(QUEUE_NAME, false, false, false, null);
+        // exchange
+        String EXCHANGE_NAME = "exchange3";
+        channel.exchangeDeclare(EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
 
-        // consumer (handle msg)
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        System.out.println("Enter routing key:");
+        String routingKey = br.readLine();
+
+        // queue & bind
+        String queueName = channel.queueDeclare().getQueue();
+        channel.queueBind(queueName, EXCHANGE_NAME, routingKey);
+        System.out.println("created queue: " + queueName);
+
+        // consumer (message handling)
         Consumer consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                 String message = new String(body, "UTF-8");
                 System.out.println("Received: " + message);
-                int timeToSleep = Integer.parseInt(message);
-                try {
-                    Thread.sleep(timeToSleep * 1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                channel.basicAck(envelope.getDeliveryTag(), false);
-                System.out.println("Przetworzone.");
             }
         };
 
-
         // start listening
         System.out.println("Waiting for messages...");
-        //channel.basicConsume(QUEUE_NAME, true, consumer);
-        channel.basicConsume(QUEUE_NAME, false, consumer);
-
-
-        // close
-        // channel.close();
-        // connection.close();
+        channel.basicConsume(queueName, true, consumer);
     }
 }
